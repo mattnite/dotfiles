@@ -1,0 +1,3 @@
+#!/bin/sh
+
+mpv /dev/video0 --no-cache --untimed --no-demuxer-thread --video-sync=audio --vd-lavc-threads=1
