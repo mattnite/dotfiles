@@ -68,6 +68,18 @@ packer.startup(function()
       }
     end
   }
+
+  use {
+    "folke/which-key.nvim", -- popup for motions and other hints
+    config = function()
+      require("which-key").setup {
+        window = {
+          border = 'single',
+
+        },
+      }
+    end
+  }
   end
 )
 
@@ -193,6 +205,9 @@ vim.api.nvim_set_keymap('n', '<Leader>gf', ':GFiles<CR>', { noremap = true, sile
 vim.api.nvim_set_keymap('n', '<Leader>rg', ':Rg<CR>', { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<Leader>z', ':ZenMode<CR>', { noremap = true, silent = true })
 
+-- unmap this as it conflicts with which-key
+vim.keymap.set('n', '<Leader>s', '', {})
+
 -- basic vim options
 vim.cmd('colorscheme sonokai')
 vim.opt.number = true
@@ -202,3 +217,5 @@ vim.opt.expandtab = true
 vim.opt.linebreak = true
 vim.opt.wrap = false
 vim.opt.termguicolors = true
+vim.opt.clipboard = 'unnamedplus'
+vim.opt.timeoutlen = 0
