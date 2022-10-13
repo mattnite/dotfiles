@@ -15,17 +15,28 @@ packer.startup(function()
   use 'neovim/nvim-lspconfig' -- Collection of configurations for the built-in LSP client
   use 'sainnhe/sonokai' -- color scheme
   use 'nvim-treesitter/nvim-treesitter'
+  use 'nvim-treesitter/nvim-treesitter-context'
   use 'ziglang/zig.vim'
   use 'ntpeters/vim-better-whitespace'
   use 'kevinhwang91/nvim-bqf' -- Preview window for quickfix
   use 'ray-x/lsp_signature.nvim'
   use 'glepnir/lspsaga.nvim'
+  use 'sbdchd/neoformat'
+  use 'tpope/vim-fugitive'
+  use 'renerocksai/telekasten.nvim'
 
   use {
-    'junegunn/fzf.vim',
+    'nvim-telescope/telescope.nvim', tag = '0.1.0',
+    requires = { {'nvim-lua/plenary.nvim'} }
+  }
+
+  use {
+    'nvim-telescope/telescope-media-files.nvim',
     requires = {
-      'junegunn/fzf'
-    }
+      { 'nvim-lua/popup.nvim' },
+      { 'nvim-lua/plenary.nvim' },
+      { 'nvim-telescope/telescope.nvim' },
+    },
   }
 
   use {
@@ -100,6 +111,8 @@ require'nvim-treesitter.configs'.setup {
   },
 }
 
+require'treesitter-context'.setup()
+
 -- Use an on_attach function to only map the following keys
 -- after the language server attaches to the current buffer
 local on_attach = function(client, bufnr)
@@ -133,13 +146,51 @@ capabilities = require('cmp_nvim_lsp').update_capabilities(capabilities)
 local lspconfig = require('lspconfig')
 
 -- Enable some language servers with the additional completion capabilities offered by nvim-cmp
-local servers = { 'clangd', 'zls' }
+local servers = { 'clangd', 'zls', 'pylsp', 'gopls', 'bashls'}
 for _, lsp in ipairs(servers) do
   lspconfig[lsp].setup {
     on_attach = on_attach,
     capabilities = capabilities,
   }
 end
+
+lspconfig.yamlls.setup {
+  on_attach = on_attach,
+  capabilities = capabilities,
+  settings = {
+    yaml = {
+      schemas = {
+        kubernetes = "*",
+      },
+      --schemaStore = {
+      --  enable = true,
+      --},
+    },
+  },
+}
+
+lspconfig.sumneko_lua.setup {
+  settings = {
+    Lua = {
+      runtime = {
+        -- Tell the language server which version of Lua you're using (most likely LuaJIT in the case of Neovim)
+        version = 'LuaJIT',
+      },
+      diagnostics = {
+        -- Get the language server to recognize the `vim` global
+        globals = {'vim'},
+      },
+      workspace = {
+        -- Make the server aware of Neovim runtime files
+        library = vim.api.nvim_get_runtime_file("", true),
+      },
+      -- Do not send telemetry data containing a randomized but unique identifier
+      telemetry = {
+        enable = false,
+      },
+    },
+  },
+}
 
 -- signature helper
 require "lsp_signature".setup()
@@ -192,18 +243,55 @@ cmp.setup {
 }
 
 -- mappings
-vim.api.nvim_set_keymap('n', '<Leader>rn', '', {
-    noremap = true,
-    callback = function()
-      require('lspsaga.rename').rename()
-    end,
-    desc = 'rename a token using LSP',
-})
+vim.api.nvim_set_keymap('n', '<Leader>rn', ':Lspsaga rename<CR>', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<Leader>ca', ':Lspsaga code_action<CR>', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<Leader>gn', ':Lspsaga lsp_finder<CR>', { noremap = true, silent = true })
 
---   fzf mappings
-vim.api.nvim_set_keymap('n', '<Leader>gf', ':GFiles<CR>', { noremap = true, silent = true })
-vim.api.nvim_set_keymap('n', '<Leader>rg', ':Rg<CR>', { noremap = true, silent = true })
-vim.api.nvim_set_keymap('n', '<Leader>z', ':ZenMode<CR>', { noremap = true, silent = true })
+-- Telescope
+-- see more bultin pickers here: https://github.com/nvim-telescope/telescope.nvim#pickers
+local builtin = require('telescope.builtin')
+vim.keymap.set('n', '<Leader>ff', builtin.find_files, { desc = "find files" })
+vim.keymap.set('n', '<Leader>fg', builtin.find_files, { desc = "find git files" })
+vim.keymap.set('n', '<Leader>lg', builtin.live_grep, { desc = "live grep" })
+vim.keymap.set('n', '<Leader>fb', builtin.buffers, { desc = "find buffers" })
+
+require('telescope').load_extension('media_files')
+
+-- telekasten
+local home = vim.fn.expand("~/telekasten")
+local telekasten = require('telekasten');
+telekasten.setup{
+  home = home,
+  take_over_my_home = true,
+  daily = home .. '/' .. 'daily',
+  weekly = home .. '/' .. 'weekly',
+  templates = home .. '/' .. 'templates',
+  image_subdir = 'img',
+  follow_creates_nonexisting = true,
+  dailies_create_nonexisting = true,
+  weeklies_create_nonexisting = true,
+  media_previewer = 'telescope-media-files',
+  new_note_filename = 'title-uuid',
+  uuid_type = "%Y-%m-%d",
+  uuid_sep = " ",
+  image_link_style = 'markdown',
+  template_new_note = home .. '/' .. 'templates' .. '/' .. 'new-note.md',
+  template_new_daily = home .. '/' .. 'templates' .. '/'.. 'daily.md',
+  template_new_weekly = home .. '/' .. 'templates' .. '/'.. 'weekly.md',
+}
+
+vim.keymap.set('n', '<Leader>nn', telekasten.new_note, { desc = "new note" })
+vim.keymap.set('n', '<Leader>nf', telekasten.find_notes, { desc = "find notes" })
+vim.keymap.set('n', '<Leader>nw', telekasten.goto_thisweek, { desc = "goto this week's notes" })
+vim.keymap.set('n', '<Leader>nd', telekasten.goto_today, { desc = "goto today's notes" })
+vim.keymap.set('n', '<Leader>ns', telekasten.search_notes, { desc = "search notes" })
+vim.keymap.set('n', '<Leader>nl', telekasten.insert_link, { desc = "insert note link" })
+vim.keymap.set('n', '<Leader>ng', telekasten.follow_link, { desc = "follow note link" })
+vim.keymap.set('n', '<Leader>ny', telekasten.yank_notelink, { desc = "yank link to current note" })
+vim.keymap.set('n', '<Leader>nt', telekasten.toggle_todo, { desc = "toggle todo in note" })
+vim.keymap.set('n', '<Leader>ni', telekasten.insert_img_link, { desc = "insert image link" })
+vim.keymap.set('n', '<Leader>np', telekasten.insert_img_link, { desc = "preview image link" })
+vim.keymap.set('n', '<Leader>nb', telekasten.insert_img_link, { desc = "browse media" })
 
 -- unmap this as it conflicts with which-key
 vim.keymap.set('n', '<Leader>s', '', {})
@@ -215,7 +303,47 @@ vim.opt.relativenumber = true
 vim.opt.cursorline = true
 vim.opt.expandtab = true
 vim.opt.linebreak = true
+vim.opt.shiftwidth = 4
 vim.opt.wrap = false
 vim.opt.termguicolors = true
 vim.opt.clipboard = 'unnamedplus'
-vim.opt.timeoutlen = 0
+vim.opt.timeoutlen = 250
+
+-- for :Lexplore
+vim.g.netrw_altv = 1
+vim.g.netrw_banner = 0
+vim.g.netrw_liststyle = 3
+vim.g.netrw_winsize = 15
+
+-- I like just having one file for all my neovim configs, so effectively implementing ftplugin here
+local function ftplugin(filetype, opts)
+  vim.api.nvim_create_autocmd('FileType', {
+    pattern = filetype,
+    callback = function()
+      for key, value in pairs(opts) do
+        vim.opt[key] = value
+      end
+    end,
+  })
+end
+
+ftplugin('lua', {
+  shiftwidth = 2,
+})
+
+ftplugin('markdown', {
+  shiftwidth = 2,
+  wrap = true,
+})
+
+ftplugin('telekasten', {
+  shiftwidth = 2,
+  textwidth = 80,
+  wrap = true,
+})
+
+ftplugin('asciidoc', {
+  formatoptions = 'tcqr',
+  shiftwidth = 2,
+  wrap = true,
+})
