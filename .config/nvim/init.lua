@@ -300,6 +300,14 @@ vim.keymap.set('n', '<Leader>ni', telekasten.insert_img_link, { desc = "insert i
 vim.keymap.set('n', '<Leader>np', telekasten.insert_img_link, { desc = "preview image link" })
 vim.keymap.set('n', '<Leader>nb', telekasten.insert_img_link, { desc = "browse media" })
 
+-- extra which-key configs
+local wk = require("which-key")
+wk.register({
+  n = {
+    name = "notes",
+  }
+}, { prefix = "<Leader>" })
+
 -- unmap this as it conflicts with which-key
 vim.keymap.set('n', '<Leader>s', '', {})
 
