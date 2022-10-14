@@ -14,14 +14,13 @@ packer.startup(function()
   use 'wbthomason/packer.nvim' -- Package manager
   use 'neovim/nvim-lspconfig' -- Collection of configurations for the built-in LSP client
   use 'sainnhe/sonokai' -- color scheme
-  use 'nvim-treesitter/nvim-treesitter'
+  use { 'nvim-treesitter/nvim-treesitter', run = ':TSUpdate' }
   use 'nvim-treesitter/nvim-treesitter-context'
   use 'ziglang/zig.vim'
   use 'ntpeters/vim-better-whitespace'
   use 'kevinhwang91/nvim-bqf' -- Preview window for quickfix
   use 'ray-x/lsp_signature.nvim'
   use 'glepnir/lspsaga.nvim'
-  use 'sbdchd/neoformat'
   use 'tpope/vim-fugitive'
   use 'renerocksai/telekasten.nvim'
 
@@ -98,6 +97,8 @@ require('lualine').setup {
   options = {
     icons_enabled = true,
     theme = 'sonokai',
+    component_separators = { left = '', right = ''},
+    section_separators = { left = '', right = ''},
   },
 }
 
@@ -146,7 +147,7 @@ capabilities = require('cmp_nvim_lsp').update_capabilities(capabilities)
 local lspconfig = require('lspconfig')
 
 -- Enable some language servers with the additional completion capabilities offered by nvim-cmp
-local servers = { 'clangd', 'zls', 'pylsp', 'gopls', 'bashls'}
+local servers = { 'clangd', 'zls', 'pylsp', 'gopls', 'bashls' }
 for _, lsp in ipairs(servers) do
   lspconfig[lsp].setup {
     on_attach = on_attach,
@@ -243,7 +244,13 @@ cmp.setup {
 }
 
 -- mappings
-vim.api.nvim_set_keymap('n', '<Leader>rn', ':Lspsaga rename<CR>', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<Leader>rn', '', {
+    noremap = true,
+    callback = function()
+      require('lspsaga.rename').rename()
+    end,
+    desc = 'rename a token using LSP',
+})
 vim.api.nvim_set_keymap('n', '<Leader>ca', ':Lspsaga code_action<CR>', { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<Leader>gn', ':Lspsaga lsp_finder<CR>', { noremap = true, silent = true })
 
